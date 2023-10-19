@@ -1,0 +1,64 @@
+# Copyright 2023 NetApp, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+#
+# Software is provided under this License on an “as is” basis, without
+# warranty of any kind, either expressed, implied.
+#
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+blueprint_name: hpc-cvs-integrate-new
+
+vars:
+  project_id: ## Set GCP Project ID Here ##
+  deployment_name: hpc-cvs-integrate-new
+  region: "us-east1"
+  zone: "us-east1-b"
+
+# Documentation for each of the modules used below can be found at
+# https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/main/modules/README.md
+
+deployment_groups:
+
+  - group: api
+    modules:
+
+    - id: services-api
+      source: community/modules/project/service-enablement
+      settings:
+        gcp_service_list: [
+        "servicenetworking.googleapis.com",
+        "servicemanagement.googleapis.com",
+        "cloudvolumesgcp-api.netapp.com",
+        "compute.googleapis.com"
+      ]
+
+  - group: network
+    modules:
+
+      - id: network1
+        source: modules/network/vpc
+        settings:
+          network_name: cluster-net-new-1
+
+      - id: vpc-peering
+        source: github.com/NetApp/HPCToolKit-GCP-CVS//modules/network/vpc-peering
+        use: [ network1 ]
+
+      - id: netapp-cvs
+        source: github.com/NetApp/HPCToolKit-GCP-CVS//modules/file-system/cvs
+        use: [ network1, vpc-peering ]
+        settings:
+          ## storage_pool_name --> Recommend pulling from deployment_name
+          # readme can be generated automatically with pre-commit hooks, or our makefile
+
+      - id: client-vm
+        source: modules/compute/vm-instance
+        use: [network1, netapp-cvs]
+        settings:
+          instance_count: 1
+          name_prefix: compute
+          machine_type: n2-standard-2

@@ -1,0 +1,59 @@
+# Copyright 2023 NetApp, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+#
+# Software is provided under this License on an “as is” basis, without
+# warranty of any kind, either expressed, implied.
+#
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+blueprint_name: hpc-cvs-integrate
+
+vars:
+  project_id: cv-solution-architect-lab ## Set GCP Project ID Here ##
+  deployment_name: hpc-cvs-integrate
+  region: us-east1
+
+# Documentation for each of the modules used below can be found at
+# https://github.com/GoogleCloudPlatform/hpc-toolkit/blob/main/modules/README.md
+
+deployment_groups:
+  - group: primary
+    modules:
+      # Source is an embedded module, denoted by "modules/*" without ./, ../, /
+      # as a prefix. To refer to a local or community module, prefix with ./, ../ or /
+      # Example - ./modules/network/vpc
+
+      - id: network1
+        source: modules/network/vpc
+        settings:
+          network_name: cluster-net-new-1
+          enable_iap_ssh_ingress: false
+
+      - id: vpc-peering
+        source: github.com/paavan-gopala-reddy/HPCToolKit-GCP-CVS-CS//module/network/vpc-peering
+        settings:
+          project_id: "cv-solution-architect-lab"
+          network_name: "cluster-net-new-1"
+
+      - id: storage-pool
+        source: github.com/paavan-gopala-reddy/HPCToolKit-GCP-CVS-CS
+        use: [network1]
+        settings:
+          project_id: "cv-solution-architect-lab"
+          service_account: "test-tf-cvs-sa@cv-solution-architect-lab.iam.gserviceaccount.com"
+          storage_pool_name: "example_ha_pool_paavan"
+          region: "us-east1"
+          zone: "us-east1-b"
+          network_name: ((module.network1.network_name))
+          storage_pool_global_ad_access: true
+          storage_pool_size: 1024
+          storage_pool_service_level: "StandardSW"
+          storage_pool_storage_class: "software"
+          volume_name: "terraform-nfs-example"
+          volume_protocol_types: ["NFSv3"]
+          volume_size: 100
+          volume_service_level: "standard"
