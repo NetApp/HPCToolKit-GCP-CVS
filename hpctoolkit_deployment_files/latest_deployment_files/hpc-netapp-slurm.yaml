@@ -11,11 +11,11 @@
 
 ---
 
-blueprint_name: hpc-cluster-slurm-small
+blueprint_name: hpc-cluster-netapp-cvs
 
 vars:
   project_id: null
-  deployment_name: hpc-small-netapp-volume
+  deployment_name: hpc-netapp-cvs
   region: us-east1
   zone: us-east1-b
 
