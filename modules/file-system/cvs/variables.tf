@@ -159,6 +159,18 @@ variable "volume_size" {
   default     = 100
 }
 
+variable "volume_region" {
+  description = "The region of the NetApp_GCP volume."
+  type        = string
+  default     = "us-east4"
+}
+
+variable "volume_zone" {
+  description = "Location of the volume."
+  type        = string
+  default     = ""
+}
+
 variable "volume_service_level" {
   type    = string
   default = "standard"
@@ -182,19 +194,26 @@ variable "volume_snapshot_policy_enabled" {
 
 variable "volume_delete_on_creation_error" {
   description = " Automatically delete volume if volume is in error state after creation. Default is false."
-  type        = string
-  default     = false //
+  type        = bool
+  default     = true //
 }
 
-variable "gcp_routes_config" {
-  description = " Manage a network peering's route settings without managing the peering as a whole"
-  type        = string
+variable "volume_export_policies" {
+  type = list(object({
+    rule = list(object({
+      allowed_clients = string,
+      access          = string,
+      has_root_access = bool,
+      nfsv3 = list(object({
+        checked = bool
+      })),
+      nfsv4 = list(object({
+        checked = bool
+      }))
+    }))
+  }))
+  default = []
 }
-
-# variable "volume_export_policy" {
-#   description = "Specify NFS Export Policy."
-#   type        = map(any)
-# }
 
 variable "volume_billing_label_key" {
   description = "Must be a minimum length of 1 character and a maximum length of 63 characters, and cannot be empty. Can contain only lowercase letters, numeric characters, underscores, and dashes. All characters must use UTF-8 encoding, and international characters are allowed. Must start with a lowercase letter or international character."
