@@ -45,11 +45,24 @@ resource "random_string" "volume_name_rand_string" {
   numeric = false
 }
 
+locals {
+  default_export_policy = {
+    rule = {
+      allowed_clients = null,
+      access          = null,
+      has_root_access = null,
+      nfsv3           = []
+      nfsv4           = []
+    }
+  }
+  export_policys = coalescelist(var.volume_export_policies, [local.default_export_policy])
+}
+
 resource "netapp-gcp_volume" "gcp-volume" {
   depends_on                = [netapp-gcp_storage_pool.test-storage-pool, random_string.volume_name_rand_string]
   name                      = "${var.volume_name}-${random_string.volume_name_rand_string.result}"
-  region                    = var.region
-  zone                      = var.zone
+  region                    = var.volume_region != "" ? var.volume_region : var.region
+  zone                      = var.volume_zone == "" ? null : var.zone
   regional_ha               = var.regional_ha_service_level
   protocol_types            = var.volume_protocol_types
   network                   = var.network_name
@@ -58,7 +71,7 @@ resource "netapp-gcp_volume" "gcp-volume" {
   volume_path               = var.volume_path == "" ? "${var.volume_name}-${random_string.volume_name_rand_string.result}" : null
   storage_class             = var.volume_storage_class
   delete_on_creation_error  = var.volume_delete_on_creation_error
-  pool_id                   = netapp-gcp_storage_pool.test-storage-pool.id
+  pool_id                   = var.volume_storage_class == "hardware" ? null : netapp-gcp_storage_pool.test-storage-pool.id
   unix_permissions          = var.volume_unix_permissions
   shared_vpc_project_number = var.shared_vpc_project_number == "" ? null : var.shared_vpc_project_number
   type_dp                   = var.volume_type_dp == "" ? null : var.volume_type_dp
@@ -66,20 +79,34 @@ resource "netapp-gcp_volume" "gcp-volume" {
   snapshot_policy {
     enabled = var.volume_snapshot_policy_enabled
   }
-  export_policy {
-    rule {
-      allowed_clients = "10.0.0.0/24"
-      access          = "ReadWrite"
-      nfsv3 {
-        checked = true
+
+  dynamic "export_policy" {
+    for_each = local.export_policys
+    content {
+      dynamic "rule" {
+        for_each = export_policy.value.rule
+        content {
+          allowed_clients = rule.value.allowed_clients
+          access          = rule.value.access
+          has_root_access = rule.value.has_root_access
+          dynamic "nfsv3" {
+            for_each = rule.value.nfsv3
+            content {
+              checked = nfsv3.value.checked
+            }
+          }
+          dynamic "nfsv4" {
+            for_each = rule.value.nfsv4
+            content {
+              checked = nfsv4.value.checked
+            }
+          }
+        }
       }
-      nfsv4 {
-        checked = false
-      }
+
     }
   }
 }
-
 # resource "random_string" "volume_backup_name_rand_string" {
 #   length  = 3
 #   special = false
