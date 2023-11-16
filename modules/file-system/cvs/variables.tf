@@ -198,6 +198,12 @@ variable "volume_delete_on_creation_error" {
   default     = true //
 }
 
+
+variable "gcp_routes_config" {
+  description = " Manage a network peering's route settings without managing the peering as a whole"
+  type        = string
+}
+
 variable "volume_export_policies" {
   type = list(object({
     rule = list(object({
